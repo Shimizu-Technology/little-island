@@ -1,0 +1,64 @@
+{
+  "name": "little-island-games",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "expo": "~57.0.31",
+    "expo-asset": "~57.0.15",
+    "expo-audio": "~57.0.4",
+    "expo-build-properties": "~57.0.15",
+    "expo-constants": "~57.0.16",
+    "expo-document-picker": "~57.0.1",
+    "expo-file-system": "~57.0.6",
+    "expo-haptics": "~57.0.3",
+    "expo-linking": "~57.0.8",
+    "expo-router": "~57.0.29",
+    "expo-sharing": "~57.0.24",
+    "expo-sqlite": "~57.0.2",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
+    "react-native-web": "~0.21.0",
+    "react-native-worklets": "0.10.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.10",
+    "@types/react-test-renderer": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.0",
+    "expo-doctor": "^1.21.5",
+    "react-test-renderer": "19.2.3",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5"
+  },
+  "scripts": {
+    "start": "expo start --port 43820",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
+    "web": "expo start --web --port 43820",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "export:web": "expo export --platform web && node scripts/offline-web.mjs",
+    "check": "npm run typecheck && npm run lint && npm test && npm run export:web",
+    "preview": "node scripts/serve.mjs",
+    "doctor": "expo-doctor",
+    "export:public": "node scripts/export-public.mjs"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "11.1.1"
+    }
+  },
+  "license": "MIT"
+}

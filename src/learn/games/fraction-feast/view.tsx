@@ -1,0 +1,44 @@
+import React, { useState } from "react";
+import { View } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
+import { Button, C, Copy, Heading, PressableScale } from "../../../components/ui";
+import type { BoardProps } from "../../types";
+import { fractionModel, fractionClue, mixedNumber, type FeastState, type FeastTask } from "./engine";
+const ink = "#753D29", cherry = "#D66E57", pale = "#FFF1D9";
+/** Bars have identical outer dimensions. Selection controls stay 44pt even for twelfths. */
+function WholeBar({ denominator, pieces, complete = false }: { denominator: number; pieces: number; complete?: boolean }) {
+  return <View accessibilityLabel={`${pieces} of ${denominator} pieces shaded in one whole${complete ? ", complete whole" : ""}`} style={{ width: 264, height: 82, flexDirection: "row", borderWidth: 2, borderColor: complete ? C.teal : ink, borderRadius: 12, overflow: "hidden" }}>
+    {Array.from({ length: denominator }, (_, i) => <View key={i} style={{ flex: 1, backgroundColor: i < pieces ? complete ? "#78BAA1" : cherry : "#F8D4A6", borderRightWidth: i === denominator - 1 ? 0 : 1, borderColor: ink }}/>) }
+  </View>;
+}
+function SliceBoard({ task, pieces, onSelect }: { task: FeastTask; pieces: number; onSelect: (n: number) => void }) {
+  const { denominator, wholes, total } = fractionModel(task);
+  return <View style={{ alignItems: "center", gap: 8 }}>
+    {Array.from({ length: wholes }, (_, whole) => {
+      const shaded = Math.max(0, Math.min(denominator, pieces - whole * denominator));
+      const complete = task.kind === "combine" && shaded === denominator;
+      return <View key={whole} style={{ gap: 4, alignItems: "center" }}><Copy style={{ fontWeight: "800" }}>{complete ? "Complete whole" : `Whole ${whole + 1}`} · {denominator} equal pieces</Copy><WholeBar denominator={denominator} pieces={shaded} complete={complete}/></View>;
+    })}
+    <Copy>Choose how many pieces to shade:</Copy>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 5, maxWidth: 300 }}>
+      {Array.from({ length: total + 1 }, (_, n) => <PressableScale key={n} accessibilityRole="button" accessibilityLabel={`Shade ${n} of ${total} pieces`} accessibilityState={{ selected: pieces === n }} onPress={() => onSelect(n)} style={{ minWidth: 44, minHeight: 44, borderRadius: 10, borderWidth: 2, borderColor: ink, backgroundColor: pieces === n ? cherry : C.paper, alignItems: "center", justifyContent: "center" }}><Copy style={{ fontWeight: "800" }}>{n}</Copy></PressableScale>)}
+    </View>
+  </View>;
+}
+export function Board({ session, update, practice, assistance, cheer, coach }: BoardProps<FeastState>) {
+  const s = session.state, t = s.tasks[s.index]; const [feedback, setFeedback] = useState(""); const [hint, setHint] = useState(false); const [served, setServed] = useState(false); if (!t) return null;
+  const unit = fractionModel(t).total;
+  const setPieces = (pieces: number) => { update({ ...s, pieces: Math.max(0, Math.min(unit, pieces)) }); setFeedback(""); setServed(false); coach.done(); };
+  const check = () => { const right = s.pieces === t.answer; practice(t.kind === "share" ? "num.fair-shares" : t.kind === "line" ? "num.fraction-line" : t.kind === "equivalent" ? "num.equivalent" : t.kind === "combine" || t.kind === "subtract" ? "num.fraction-sums" : "num.decimal-percent", right); if (!right) { setFeedback(fractionClue(t, s.pieces)); return; } cheer("right"); setFeedback(""); setHint(false); if (t.kind === "combine") { setServed(true); return; } update({ ...s, index: s.index + 1, pieces: 0 }); };
+  const prompt = t.kind === "share" ? `Serve ${t.n}/${t.d} of the ${["pie", "coconut", "fruit"][t.extra]}` : t.kind === "line" ? `Walk to ${t.n}/${t.d} on the line` : t.kind === "equivalent" ? `Fold ${t.n}/${t.d} into ${unit} little pieces` : t.kind === "combine" ? `Join ${t.n}/${t.d} and ${t.extra}/${t.d}` : t.kind === "subtract" ? `Take ${t.extra}/${t.d} from ${t.n}/${t.d}` : t.extra === 1 ? `Show ${t.n}/100 on the hundred grid` : t.extra === 2 ? `Show ${t.n}% on the hundred grid` : `Show $0.${String(t.n).padStart(2,"0")} on the hundred grid`;
+  return <View style={{ gap: 15, paddingBottom: 20 }}>
+    <View style={{ backgroundColor: pale, padding: 16, borderRadius: 19, gap: 7 }}><Copy style={{ color: ink, fontWeight: "900" }}>FEAST {s.index+1} OF 5</Copy><Heading>{prompt}</Heading><Copy>{t.kind === "equivalent" ? `The new pieces are ${t.extra} times smaller. Shade the same amount.` : t.kind === "combine" ? "Choose the total pieces. Each outlined bar is one whole." : t.kind === "subtract" ? "Shade the part that remains after taking some away." : t.kind === "decimal" ? "Ten squares make one tenth. One square makes one hundredth. What percent is shaded?" : "Choose how many pieces to shade. Choose zero to start again."}</Copy></View>
+    {t.kind === "equivalent" && <View style={{ gap: 5, alignItems: "center" }}><Copy style={{ fontWeight: "900" }}>Original share: {t.n}/{t.d}</Copy><WholeBar denominator={t.d} pieces={t.n}/><Copy>Fold the bar below to match this amount.</Copy></View>}
+    {t.kind === "line" ? <View style={{ paddingVertical: 20, gap: 14 }}><View style={{ height: 5, backgroundColor: ink, marginHorizontal: 15 }}/><View style={{ flexDirection: "row", justifyContent: "space-between" }}>{Array.from({ length: t.d+1 }, (_, i) => <PressableScale key={i} accessibilityRole="button" accessibilityLabel={`Mark ${i} of ${t.d}`} onPress={() => setPieces(i)} style={{ width: 44, minHeight: 56, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: i === s.pieces ? cherry : C.paper, borderWidth: 2, borderColor: ink }}><Copy style={{ color: i === s.pieces ? C.paper : ink, fontWeight: "900" }}>{i}</Copy></PressableScale>)}</View><Copy style={{ textAlign: "center", fontWeight: "800" }}>0  ···  {s.pieces}/{t.d}  ···  1</Copy></View> : t.kind === "decimal" ? <View style={{ gap: 10 }}><View style={{ width: 260, alignSelf: "center", flexDirection: "row", flexWrap: "wrap", borderWidth: 2, borderColor: ink }}>{Array.from({ length: 100 }, (_, i) => <View key={i} style={{ width: 25, height: 25, backgroundColor: i < s.pieces ? cherry : C.paper, borderWidth: 0.5, borderColor: "#CBB59C" }}/>)}</View><View style={{ flexDirection: "row", justifyContent: "center", gap: 8 }}><Button compact quiet onPress={() => setPieces(s.pieces-10)}>−10</Button><Button compact onPress={() => setPieces(s.pieces+10)}>+10</Button><Button compact quiet onPress={() => setPieces(s.pieces-1)}>−1</Button><Button compact onPress={() => setPieces(s.pieces+1)}>+1</Button></View><Copy style={{ textAlign: "center", fontWeight: "800" }}>{s.pieces}/100 = {(s.pieces / 100).toFixed(2)} = {s.pieces}%</Copy></View> : <View style={{ gap: 10 }}><SliceBoard task={t} pieces={s.pieces} onSelect={setPieces}/><Copy style={{ textAlign: "center", fontWeight: "800" }}>{s.pieces}/{t.kind === "equivalent" ? unit : t.d} shaded</Copy></View>}
+    {served && <View accessibilityLiveRegion="polite" style={{ padding: 14, gap: 7, backgroundColor: "#DCEFD9", borderRadius: 14 }}><Heading>{t.answer}/{t.d} = {mixedNumber(t.answer, t.d)}</Heading><Copy>One complete whole is {t.d}/{t.d}. The other bar has {t.answer % t.d}/{t.d} left.</Copy><Button onPress={() => { setServed(false); update({ ...s, index: s.index + 1, pieces: 0 }); }}>Next feast</Button></View>}
+    {hint && <View style={{ backgroundColor: "#FFF8DC", borderRadius: 13, padding: 12 }}><Copy style={{ fontWeight: "700" }}>{t.kind === "equivalent" ? `Each of the ${t.n} original pieces becomes ${t.extra} little pieces. Count ${t.n} groups of ${t.extra}.` : t.kind === "combine" ? `The denominator stays ${t.d}. Add the top numbers: ${t.n} + ${t.extra}. One whole is ${t.d}/${t.d}.` : t.kind === "subtract" ? `The denominator stays ${t.d}. Take ${t.extra} from ${t.n}.` : t.kind === "decimal" ? `Start with ${Math.floor(t.n/10)} tens, then add ${t.n%10} single squares.` : `Count ${t.n} ${t.n === 1 ? "piece" : "pieces"} out of ${t.d}.`}</Copy></View>}
+    {!!feedback && <Copy style={{ color: C.error, fontWeight: "700" }}>{feedback}</Copy>}
+    <View style={{ flexDirection: "row", gap: 8 }}>{!served && <Button style={{ flex: 1 }} onPress={check}>Serve it</Button>}<Button quiet compact onPress={() => { if (!hint) assistance?.(); setHint(!hint); update({ ...s, helped: true }); }}>Hint</Button></View>
+  </View>;
+}
+export function Art({ size }: { size: number }) { return <Svg width={size} height={size} viewBox="0 0 100 100"><Circle cx="50" cy="50" r="43" fill="#F7D29A" stroke={ink} strokeWidth="3"/><Path d="M50 50V8M50 50L89 34M50 50L66 89M50 50L12 71" stroke={ink} strokeWidth="2"/><Circle cx="35" cy="29" r="5" fill={cherry}/><Circle cx="65" cy="67" r="5" fill={cherry}/><Circle cx="31" cy="64" r="5" fill={cherry}/></Svg>; }
